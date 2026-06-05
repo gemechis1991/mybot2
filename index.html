@@ -367,7 +367,7 @@
   </select>
 
   <div class="form-label">Select Date</div>
-  <input class="form-input" type="date" id="book-date" onchange="onBookDateChange()">
+  <input class="form-input" type="date" id="book-date" onchange="onBookDateChange()" oninput="onBookDateChange()">
 
   <div id="time-slot-section" style="display:none;">
     <div class="form-label">Select Time Slot</div>
@@ -416,6 +416,13 @@
     <option value="tokuma">💈 Tokuma</option>
     <option value="siraj">🪒 Siraj</option>
     <option value="abebe">⚡ Abebe</option>
+  </select>
+  <div class="form-label">Service</div>
+  <select class="form-select" id="pay-service" onchange="updatePaySummary()">
+    <option value="haircut">✂️ Haircut — 500 ETB</option>
+    <option value="haircut_beard">✂️🪒 Haircut + Beard — 700 ETB</option>
+    <option value="beard">🪒 Beard Trim — 250 ETB</option>
+    <option value="vip">⭐ VIP Package — 1000 ETB</option>
   </select>
   <div class="form-label">Tip Amount (ETB)</div>
   <input class="form-input" type="number" id="pay-tip" placeholder="0" value="0" min="0" oninput="updatePaySummary()">
@@ -684,10 +691,14 @@ function loadHome() {
 
 // ─── Pay: summary update ───
 function updatePaySummary() {
+  const serviceKey = document.getElementById('pay-service').value;
+  const svc = SERVICE_PRICES[serviceKey] || SERVICE_PRICES['haircut'];
+  const basePrice = svc.price;
   const tip = parseInt(document.getElementById('pay-tip').value) || 0;
-  const total = BASE_PRICE + tip;
-  const cutterShare = Math.floor(BASE_PRICE / 2) + tip;
-  const ownerShare = BASE_PRICE - Math.floor(BASE_PRICE / 2);
+  const total = basePrice + tip;
+  const cutterShare = Math.floor(basePrice / 2) + tip;
+  const ownerShare = basePrice - Math.floor(basePrice / 2);
+  document.getElementById('ps-base').textContent  = basePrice + ' ETB';
   document.getElementById('ps-tip').textContent   = tip + ' ETB';
   document.getElementById('ps-total').textContent  = total + ' ETB';
   document.getElementById('ps-cutter').textContent = cutterShare + ' ETB';
@@ -698,20 +709,20 @@ function updatePaySummary() {
 
 // ─── Generate Chapa Link (FIXED) ───
 function generatePayLink() {
-  const cutter = document.getElementById('pay-cutter').value;
-  const tip    = parseInt(document.getElementById('pay-tip').value) || 0;
+  const cutter  = document.getElementById('pay-cutter').value;
+  const service = document.getElementById('pay-service').value;
+  const tip     = parseInt(document.getElementById('pay-tip').value) || 0;
   if (!cutter) {
     showAlert('pay', 'error', '⚠️ Please select a cutter.');
     return;
   }
 
-  // FIXED: use tg.sendData() — works in Mini App context
-  // tg.initData is the correct property (not tg.initDataUnsafe.initData)
+  const payload = { action: 'pay', cutter, service, tip };
+
   try {
-    tg.sendData(JSON.stringify({ action: 'pay', cutter, tip }));
+    tg.sendData(JSON.stringify(payload));
     showAlert('pay', 'success', '✅ Request sent! Check your Telegram chat for the payment link.');
   } catch (e) {
-    // Fallback: if not in Telegram context (e.g. testing in browser)
     showAlert('pay', 'error', '⚠️ Could not send data. Make sure you opened this via Telegram.');
   }
 }
@@ -804,7 +815,7 @@ function openQrModal(key, cutter, url) {
 }
 
 function closeQrModal(e) {
-  if (!e || e.target === document.getElementById('qr-modal') || e.type === 'click') {
+  if (!e || e.target === document.getElementById('qr-modal')) {
     document.getElementById('qr-modal').classList.remove('show');
   }
 }
@@ -922,12 +933,17 @@ function confirmBooking() {
   };
 
   try {
+    if (!tg || !tg.sendData) throw new Error('Telegram not available');
     tg.sendData(JSON.stringify(payload));
-    showAlert('book', 'success', `✅ Booking request sent! ${CUTTERS[cutter]?.name} will be ready for you at ${selectedTimeSlot} on ${date}.`);
-    // Reset
+    showAlert('book', 'success', `✅ Booking sent! ${CUTTERS[cutter]?.name} will be ready at ${selectedTimeSlot} on ${date}.`);
+    // Reset form
+    document.getElementById('book-cutter').value = '';
+    document.getElementById('book-name').value = '';
+    document.getElementById('book-phone').value = '';
     selectedTimeSlot = null;
     document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
     document.getElementById('book-summary').classList.remove('show');
+    document.getElementById('time-slot-section').style.display = 'none';
   } catch(e) {
     showAlert('book', 'error', '⚠️ Could not send booking. Please try via the bot: /book');
   }
@@ -936,7 +952,13 @@ function confirmBooking() {
 // ─── Init ───
 initBookingDate();
 loadHome();
-buildQrCodes();
+
+// Defer QR code generation until after QRCode library is fully loaded
+if (typeof QRCode !== 'undefined') {
+  buildQrCodes();
+} else {
+  window.addEventListener('load', buildQrCodes);
+}
 </script>
 </body>
 </html>
