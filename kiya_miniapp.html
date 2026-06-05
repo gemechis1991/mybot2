@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Kiya Men Salon</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --gold: #C9A84C;
+    --dark: #1a1a2e;
+    --mid:  #16213e;
+    --card: #0f3460;
+    --text: #e0e0e0;
+    --green: #4caf78;
+    --red:  #e05555;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 80px;
+  }
+  /* ── Header ── */
+  .header {
+    background: linear-gradient(135deg, var(--dark) 0%, var(--mid) 100%);
+    padding: 20px 16px 16px;
+    text-align: center;
+    border-bottom: 2px solid var(--gold);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .logo-ring {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), #8b6914);
+    margin: 0 auto 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px;
+    box-shadow: 0 0 20px rgba(201,168,76,0.4);
+  }
+  .salon-name { font-size: 20px; font-weight: 700; color: var(--gold); letter-spacing: 1px; }
+  .salon-sub  { font-size: 12px; color: #aaa; margin-top: 2px; }
+  /* ── Tabs ── */
+  .tabs {
+    display: flex; background: var(--mid);
+    border-bottom: 1px solid #333;
+  }
+  .tab {
+    flex: 1; padding: 12px 4px; text-align: center;
+    font-size: 12px; font-weight: 600; color: #888;
+    cursor: pointer; transition: all .2s;
+    border-bottom: 2px solid transparent;
+  }
+  .tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+  /* ── Panels ── */
+  .panel { display: none; padding: 16px; }
+  .panel.active { display: block; }
+  /* ── Cards ── */
+  .card {
+    background: var(--card);
+    border-radius: 12px; padding: 16px; margin-bottom: 12px;
+    border: 1px solid #1e4a8a;
+  }
+  .card-title { font-size: 13px; color: #aaa; margin-bottom: 6px; }
+  .card-value { font-size: 22px; font-weight: 700; color: var(--gold); }
+  .card-sub   { font-size: 11px; color: #888; margin-top: 2px; }
+  /* ── Stat grid ── */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  /* ── Cutter cards ── */
+  .cutter-card {
+    background: var(--card);
+    border-radius: 12px; padding: 14px;
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 12px;
+    border: 1px solid #1e4a8a;
+    cursor: pointer; transition: transform .15s, border-color .15s;
+  }
+  .cutter-card:active { transform: scale(0.97); border-color: var(--gold); }
+  .cutter-avatar {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), #5a3d0a);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  .cutter-info { flex: 1; }
+  .cutter-name { font-weight: 700; font-size: 15px; }
+  .cutter-stat { font-size: 11px; color: #aaa; margin-top: 2px; }
+  .cutter-badge {
+    background: var(--gold); color: #000;
+    font-size: 11px; font-weight: 700;
+    padding: 3px 8px; border-radius: 20px;
+  }
+  /* ── Forms ── */
+  .form-label { font-size: 12px; color: #aaa; margin-bottom: 6px; }
+  .form-select, .form-input {
+    width: 100%; padding: 12px; border-radius: 10px;
+    background: var(--mid); border: 1px solid #333;
+    color: var(--text); font-size: 14px; margin-bottom: 14px;
+    appearance: none;
+  }
+  .form-select:focus, .form-input:focus {
+    outline: none; border-color: var(--gold);
+  }
+  /* ── Buttons ── */
+  .btn {
+    width: 100%; padding: 14px; border-radius: 10px;
+    border: none; font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: opacity .2s;
+  }
+  .btn:active { opacity: 0.8; }
+  .btn-gold   { background: linear-gradient(135deg, var(--gold), #8b6914); color: #000; }
+  .btn-green  { background: linear-gradient(135deg, #4caf78, #2e7d4f); color: #fff; }
+  .btn-red    { background: linear-gradient(135deg, #e05555, #a02020); color: #fff; }
+  .btn-ghost  { background: transparent; border: 1px solid var(--gold); color: var(--gold); margin-top: 8px; }
+  /* ── Transaction list ── */
+  .tx-item {
+    background: var(--card); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-left: 3px solid var(--gold);
+  }
+  .tx-left .tx-ref   { font-size: 11px; color: #aaa; }
+  .tx-left .tx-cutter { font-weight: 600; font-size: 13px; }
+  .tx-right .tx-amount { font-size: 16px; font-weight: 700; color: var(--gold); }
+  .tx-right .tx-date   { font-size: 10px; color: #888; text-align: right; }
+  .badge-paid { color: var(--green); font-size: 10px; }
+  .badge-rec  { color: #f0a030; font-size: 10px; }
+  /* ── Summary row ── */
+  .split-row {
+    display: flex; justify-content: space-between;
+    padding: 8px 0; border-bottom: 1px solid #333; font-size: 13px;
+  }
+  .split-row:last-child { border-bottom: none; }
+  .split-row .label { color: #aaa; }
+  .split-row .value { font-weight: 600; }
+  /* ── Welcome banner ── */
+  .welcome-banner {
+    background: linear-gradient(135deg, #0f3460, #1a1a2e);
+    border: 1px solid var(--gold);
+    border-radius: 14px; padding: 18px; margin-bottom: 16px; text-align: center;
+  }
+  .welcome-banner h2 { color: var(--gold); font-size: 18px; margin-bottom: 6px; }
+  .welcome-banner p  { color: #bbb; font-size: 13px; line-height: 1.5; }
+  /* ── Alert ── */
+  .alert {
+    padding: 12px 14px; border-radius: 10px; margin-bottom: 14px;
+    font-size: 13px; display: none;
+  }
+  .alert.show { display: block; }
+  .alert-success { background: #1a3a28; border: 1px solid var(--green); color: var(--green); }
+  .alert-error   { background: #3a1a1a; border: 1px solid var(--red);   color: var(--red);   }
+  /* ── Footer ── */
+  .footer {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    text-align: center; padding: 10px;
+    background: var(--dark); border-top: 1px solid #222;
+    font-size: 11px; color: #555;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo-ring">💈</div>
+  <div class="salon-name">KIYA MEN SALON</div>
+  <div class="salon-sub">Premium Barbershop · Addis Ababa</div>
+</div>
+
+<!-- TABS -->
+  <div class="tabs">
+  <div class="tab active" onclick="showTab('home')">🏠 Home</div>
+  <div class="tab" onclick="showTab('pay')" id="tab-pay">💳 Pay</div>
+</div>
+
+  <!-- HOME PANEL -->
+<div class="panel active" id="tab-home">
+  <div class="welcome-banner">
+    <h2>Welcome! 👋</h2>
+    <p id="welcome-text">Loading your profile...</p>
+  </div>
+
+  <!-- Non-admin stats: only client counts, no revenue -->
+  <div id="stats-public" class="stat-grid" style="margin-bottom:12px;">
+    <div class="card">
+      <div class="card-title">Today's Clients</div>
+      <div class="card-value" id="stat-today">—</div>
+      <div class="card-sub">clients served</div>
+    </div>
+    <div class="card">
+      <div class="card-title">This Week</div>
+      <div class="card-value" id="stat-week-clients">—</div>
+      <div class="card-sub">clients this week</div>
+    </div>
+  </div>
+
+  <!-- Admin-only stats: revenue & financial data -->
+  <div id="stats-admin" class="stat-grid" style="margin-bottom:12px; display:none;">
+    <div class="card">
+      <div class="card-title">Today's Revenue</div>
+      <div class="card-value" id="stat-revenue">—</div>
+      <div class="card-sub">ETB collected</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Owner Share</div>
+      <div class="card-value" id="stat-owner-share">—</div>
+      <div class="card-sub">this week (ETB)</div>
+    </div>
+  </div>
+
+  <!-- Cutter leaderboard -->
+  <div id="cutter-list"></div>
+</div>
+
+
+<!-- PAY PANEL -->
+<div class="panel" id="tab-pay">
+  <div class="card" style="margin-bottom:16px;">
+    <div style="font-size:13px; color:#aaa; margin-bottom:4px;">💳 Generate Payment Link</div>
+    <div style="font-size:11px; color:#888;">Create a Chapa checkout link for a client</div>
+  </div>
+  <div id="alert-pay" class="alert"></div>
+  <div class="form-label">Select Cutter</div>
+  <select class="form-select" id="pay-cutter">
+    <option value="">— Choose cutter —</option>
+    <option value="yeshi">Yeshi</option>
+    <option value="tokuma">Tokuma</option>
+    <option value="siraj">Siraj</option>
+    <option value="abebe">Abebe</option>
+  </select>
+  <div class="form-label">Tip Amount (ETB)</div>
+  <input class="form-input" type="number" id="pay-tip" placeholder="0" value="0" min="0">
+  <div id="pay-summary" style="display:none; margin-bottom:14px;" class="card">
+    <div class="split-row"><span class="label">Base Price</span><span class="value" id="ps-base">500 ETB</span></div>
+    <div class="split-row"><span class="label">Tip</span><span class="value" id="ps-tip">0 ETB</span></div>
+    <div class="split-row"><span class="label">Total</span><span class="value" id="ps-total" style="color:var(--gold)">500 ETB</span></div>
+    <div class="split-row"><span class="label">Cutter Share</span><span class="value" id="ps-cutter">250 ETB</span></div>
+    <div class="split-row"><span class="label">Owner Share</span><span class="value" id="ps-owner">250 ETB</span></div>
+  </div>
+  <button class="btn btn-gold" onclick="generatePayLink()">💳 Generate Chapa Link</button>
+  <button class="btn btn-ghost" onclick="sendToBot('pay')">🤖 Use Bot Instead</button>
+</div>
+
+
+
+<div class="footer">Kiya Men Salon · Powered by Telegram Mini App</div>
+
+<script>
+const tg = window.Telegram.WebApp;
+tg.ready();
+tg.expand();
+tg.setHeaderColor('#1a1a2e');
+
+const BASE_PRICE = 500;
+const CUTTERS = {
+  yeshi:  { name: "Yeshi",  emoji: "✂️" },
+  tokuma: { name: "Tokuma", emoji: "💈" },
+  siraj:  { name: "Siraj",  emoji: "🪒" },
+  abebe:  { name: "Abebe",  emoji: "⚡" },
+};
+
+// ─── Owner gate + data fetch from bot API ───
+const API_BASE = window.location.origin;
+
+function disableOwnerRestrictedUI(){
+  // Non-owner sees Home only, no revenue/financial data.
+  const payTab = document.getElementById('tab-pay');
+  [payTab].forEach(el => { if(el) el.style.display = 'none'; });
+
+  // Hide admin-only stat cards on home
+  const adminStats = document.getElementById('stats-admin');
+  if(adminStats) adminStats.style.display = 'none';
+
+  const panels = document.querySelectorAll('.panel');
+  panels.forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-home').classList.add('active');
+}
+
+
+function escapeHtml(str){
+  return (str ?? '').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'<','>':'>','"':'"',"'":'&#039;'}[m]));
+}
+
+async function fetchDashboardData(){
+  // Telegram Mini App provides initDataUnsafe.
+  const initData = tg.initDataUnsafe?.initData;
+  if(!initData) throw new Error('missing_initData');
+
+  const res = await fetch(`${API_BASE}/api/dashboard-data`, {
+    method: 'GET',
+    headers: {
+      // Bot expects: Authorization: tma <url-encoded initData>
+      'Authorization': `tma ${encodeURIComponent(initData)}`,
+    }
+  });
+
+  if(!res.ok){
+    const err = await res.json().catch(()=>({}));
+    const message = err?.message || err?.error || 'forbidden';
+    throw new Error(message);
+  }
+  return await res.json();
+}
+
+function renderOwnerDashboard(data){
+  // Home
+  const salonName = data?.salon || 'Kiya Men Salon';
+  const recentCount = data?.recent_txs?.length || 0;
+  document.getElementById('welcome-text').textContent = `Owner dashboard loaded for ${salonName}.\nRecent Tx: ${recentCount}`;
+
+  // Show admin-only revenue stats
+  const adminStats = document.getElementById('stats-admin');
+  if(adminStats) adminStats.style.display = 'grid';
+
+  document.getElementById('stat-revenue').textContent = (data?.today_revenue || 0) + ' ETB';
+  document.getElementById('stat-owner-share').textContent = (data?.owner_share || 0) + ' ETB';
+
+  // Also populate public client counts
+  document.getElementById('stat-today').textContent = data?.today_clients || 0;
+  document.getElementById('stat-week-clients').textContent =
+    data?.cutters?.reduce((s,c)=> s + (c.weekly_clients||0),0) || data?.week_clients || 0;
+
+  // Cutter leaderboard (admin sees earnings too)
+  const leaderboard = document.getElementById('cutter-list');
+  leaderboard.innerHTML = '';
+
+  const cutters = data?.cutters || [];
+  const sorted = cutters
+    .map(c => ({ key: Object.keys(CUTTERS).find(k => CUTTERS[k].name === c.name) || c.name, ...c }))
+    .sort((a,b)=> (b.weekly_clients||0) - (a.weekly_clients||0));
+
+  const medals = ['🥇','🥈','🥉','4️⃣'];
+  const weekClients = cutters.reduce((s,c)=> s + (c.weekly_clients||0),0) || 1;
+
+  sorted.forEach((c, i) => {
+    const services = c.weekly_clients || 0;
+    const earned = c.weekly_earnings || 0;
+    const pct = weekClients ? Math.round((services / weekClients) * 100) : 0;
+
+    const card = document.createElement('div');
+    card.className = 'cutter-card';
+    card.innerHTML = `
+      <div class="cutter-avatar" style="font-size:24px;">${medals[i] || `${i+1}.`}</div>
+      <div class="cutter-info">
+        <div class="cutter-name">${escapeHtml(c.name)}</div>
+        <div class="cutter-stat">${services} clients · ${earned} ETB earned · ${pct}% share</div>
+        <div style="background:#1a1a2e;border-radius:4px;height:4px;margin-top:6px;">
+          <div style="background:var(--gold);height:4px;border-radius:4px;width:${pct}%;"></div>
+        </div>
+      </div>
+    `;
+    leaderboard.appendChild(card);
+  });
+}
+
+// ─── Non-owner home mock (no sensitive owner data) ───
+let mockData = {
+  todayServices: 0, todayRevenue: 0,
+  weekClients: 0, ownerShare: 0,
+  cutterStats: {},
+  recentTx: []
+};
+
+
+// ─── Tab navigation ───
+function showTab(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+// ─── Home: populate stats (non-admin view — no revenue/financial data) ───
+function loadHome() {
+  const user = tg.initDataUnsafe?.user;
+  const greet = user ? `Hi, ${user.first_name}! 👋` : 'Welcome to Kiya Men Salon!';
+  document.getElementById('welcome-text').textContent = greet + '\nYour premium barbershop experience.';
+
+  // Only non-sensitive counts shown to all users
+  document.getElementById('stat-today').textContent = mockData.todayServices;
+  document.getElementById('stat-week-clients').textContent = mockData.weekClients;
+  // Revenue stats (#stats-admin) remain hidden — only shown via renderOwnerDashboard
+
+  const cl = document.getElementById('cutter-list');
+  cl.innerHTML = '';
+  const sorted = Object.entries(mockData.cutterStats).sort((a,b) => b[1].services - a[1].services);
+  sorted.forEach(([key, s], i) => {
+    const c = CUTTERS[key];
+    if (!c) return;
+    const card = document.createElement('div');
+    card.className = 'cutter-card';
+    card.innerHTML = `
+      <div class="cutter-avatar">${c.emoji}</div>
+      <div class="cutter-info">
+        <div class="cutter-name">${c.name}</div>
+        <div class="cutter-stat">${s.services} clients today</div>
+      </div>
+      ${i === 0 ? '<div class="cutter-badge">🏆 #1</div>' : `<div style="color:#888;font-size:13px;">#${i+1}</div>`}
+    `;
+    cl.appendChild(card);
+  });
+}
+
+// ─── Pay: summary update ───
+function updatePaySummary() {
+  const tip = parseInt(document.getElementById('pay-tip').value) || 0;
+  const total = BASE_PRICE + tip;
+  const cutterShare = Math.floor(BASE_PRICE / 2) + tip;
+  const ownerShare = BASE_PRICE - Math.floor(BASE_PRICE / 2);
+  document.getElementById('ps-tip').textContent   = tip + ' ETB';
+  document.getElementById('ps-total').textContent  = total + ' ETB';
+  document.getElementById('ps-cutter').textContent = cutterShare + ' ETB';
+  document.getElementById('ps-owner').textContent  = ownerShare + ' ETB';
+  const sel = document.getElementById('pay-cutter').value;
+  document.getElementById('pay-summary').style.display = sel ? 'block' : 'none';
+}
+document.getElementById('pay-tip').addEventListener('input', updatePaySummary);
+document.getElementById('pay-cutter').addEventListener('change', updatePaySummary);
+
+function generatePayLink() {
+  const cutter = document.getElementById('pay-cutter').value;
+  const tip    = parseInt(document.getElementById('pay-tip').value) || 0;
+  if (!cutter) { showAlert('pay', 'error', '⚠️ Please select a cutter.'); return; }
+  // Send data to bot to generate Chapa link
+  tg.sendData(JSON.stringify({ action: 'pay', cutter, tip }));
+  showAlert('pay', 'success', '✅ Request sent to bot! Check your Telegram chat for the payment link.');
+}
+
+// ─── Helpers ───
+function showAlert(panel, type, msg) {
+  const el = document.getElementById('alert-' + panel);
+  el.className = `alert alert-${type} show`;
+  el.textContent = msg;
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+function sendToBot(action) {
+  tg.close();
+}
+
+// ─── Init ───
+loadHome();
+</script>
+</body>
+</html>
+
