@@ -170,13 +170,13 @@
 </div>
 
 <!-- TABS -->
-  <div class="tabs">
-  <div class="tab active" onclick="showTab('home')">🏠 Home</div>
-  <div class="tab" onclick="showTab('pay')" id="tab-pay">💳 Pay</div>
+<div class="tabs">
+  <div class="tab active" id="tab-btn-home" onclick="showTab('home', this)">🏠 Home</div>
+  <div class="tab" id="tab-btn-pay" onclick="showTab('pay', this)">💳 Pay</div>
 </div>
 
   <!-- HOME PANEL -->
-<div class="panel active" id="tab-home">
+<div class="panel active" id="panel-home">
   <div class="welcome-banner">
     <h2>Welcome! 👋</h2>
     <p id="welcome-text">Loading your profile...</p>
@@ -216,7 +216,7 @@
 
 
 <!-- PAY PANEL -->
-<div class="panel" id="tab-pay">
+<div class="panel" id="panel-pay">
   <div class="card" style="margin-bottom:16px;">
     <div style="font-size:13px; color:#aaa; margin-bottom:4px;">💳 Generate Payment Link</div>
     <div style="font-size:11px; color:#888;">Create a Chapa checkout link for a client</div>
@@ -265,17 +265,15 @@ const CUTTERS = {
 const API_BASE = window.location.origin;
 
 function disableOwnerRestrictedUI(){
-  // Non-owner sees Home only, no revenue/financial data.
-  const payTab = document.getElementById('tab-pay');
-  [payTab].forEach(el => { if(el) el.style.display = 'none'; });
-
-  // Hide admin-only stat cards on home
+  // Hide admin-only revenue/financial stat cards on home — that's all
   const adminStats = document.getElementById('stats-admin');
   if(adminStats) adminStats.style.display = 'none';
 
-  const panels = document.querySelectorAll('.panel');
-  panels.forEach(p => p.classList.remove('active'));
-  document.getElementById('tab-home').classList.add('active');
+  // Return to home panel
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-home').classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-btn-home').classList.add('active');
 }
 
 
@@ -365,11 +363,12 @@ let mockData = {
 
 
 // ─── Tab navigation ───
-function showTab(name) {
+function showTab(name, el) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  event.currentTarget.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+  if (el) el.classList.add('active');
+  else { const btn = document.getElementById('tab-btn-' + name); if(btn) btn.classList.add('active'); }
 }
 
 // ─── Home: populate stats (non-admin view — no revenue/financial data) ───
